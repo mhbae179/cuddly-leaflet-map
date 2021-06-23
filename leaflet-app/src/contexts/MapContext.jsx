@@ -6,6 +6,16 @@ const initialState = {
         lng: 127.0419499,
     },
     loaded: false,
+    markingMode: false,
+    placeDrawerOpen: false,
+    markerPos: {
+        lat: null,
+        lng: null,
+    },
+    markerPlaces: [
+
+    ]
+    // position, placeName, description, seeMoreLink
 }
 
 function mapReducer(state, action) {
@@ -16,6 +26,30 @@ function mapReducer(state, action) {
                 pos: action.pos,
                 loaded: !state.loaded
             };
+        case 'ADD_MARKER':
+            return {
+                ...state,
+                markerPlaces: state.markerPlaces.concat({
+                    ...action.placeInfo,
+                    lat: state.markerPos.lat,
+                    lng: state.markerPos.lng
+                })
+            };
+        case 'CHANGE_MODE':
+            return {
+                ...state,
+                markingMode: !state.markingMode
+            };
+        case 'DRAWER_OPEN':
+            return {
+                ...state,
+                placeDrawerOpen: !state.placeDrawerOpen
+            };
+        case 'SET_MARKER_POS':
+            return {
+                ...state,
+                markerPos: action.markerPos
+            }
         default:
             return state;
     }

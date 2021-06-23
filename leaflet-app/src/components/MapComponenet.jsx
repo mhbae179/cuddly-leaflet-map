@@ -5,6 +5,9 @@ import DriftMarker from './DriftMarker';
 import MultiPolyLine from './MultiPolyLine';
 import DistancePopup from './DistancePopup';
 import SearchDriftMarker from './SearchDriftMarker';
+import AddMarker from './AddMarker';
+import PlaceMarker from './PlaceMarker';
+import PlaceDrawer from './PlaceDrawer';
 
 function SearchField({ getSearchPos }) {
     const provider = new GeoSearchControl({
@@ -17,13 +20,13 @@ function SearchField({ getSearchPos }) {
         showPopup: false,
         showMarker: false
     });
-    
+
     const map = useMap();
-    
+
     useEffect(() => {
         map.addControl(provider);
         return () => map.removeControl(provider);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     return null
@@ -31,10 +34,10 @@ function SearchField({ getSearchPos }) {
 
 function SearchPolyLine({ myPos, searchPos }) {
     const map = useMap();
-    if(searchPos.lat === null) return null;
+    if (searchPos.lat === null) return null;
     const distance = Math.floor(map.distance([myPos.lat, myPos.lng], [searchPos.lat, searchPos.lng])) || 0
 
-    return(
+    return (
         <>
             <Polyline
                 positions={[[myPos.lat, myPos.lng], [searchPos.lat, searchPos.lng]]}
@@ -45,32 +48,32 @@ function SearchPolyLine({ myPos, searchPos }) {
                 closeButton={false}
                 autoClose={false}
             >
-                {/* {searchPos.name} 까지의 거리: {Math.floor(map.distance([myPos.lat, myPos.lng], [searchPos.lat, searchPos.lng])) || 0} m */}
                 {searchPos.name} 까지의 거리: {distance} m
             </Popup>
         </>
     )
 }
 
-function SetCenter({ center, loaded, getMyPosition }) {
+function SetCenter({ center, loaded }) {
     const map = useMap();
     useEffect(() => {
-        if(loaded) {
+        if (loaded) {
             map.flyTo(center, 18);
             map.closePopup();
         }
-        else map.setView(center, 18);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        else map.setView([37.6542584, 127.0419499], 18);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loaded]);
 
     return null;
 }
 
-function SetPolyLine({ 
+function SetPolyLine({
     multiPos,
     mousePos,
+    markingMode,
     drawMultiLine,
-    clearMultiLine, 
+    clearMultiLine,
     getDistance,
     getMousePos,
     getMyPosition
@@ -79,9 +82,11 @@ function SetPolyLine({
     const map = useMap();
     map.locate({ watch: true, timeout: 1000 })
 
+
     useMapEvent({
         click: (e) => {
             e.originalEvent.view.L.DomEvent.preventDefault(e);
+            if (markingMode === true) return null;
             if (eventStat === true) {
                 setEventStat(false);
                 clearMultiLine();
@@ -97,76 +102,86 @@ function SetPolyLine({
             getMousePos(e.latlng.lat, e.latlng.lng);
             getDistance(distance);
         },
-        contextmenu: () => {
-            if(eventStat === true) return;
+        contextmenu: (e) => {
+            e.originalEvent.view.L.DomEvent.preventDefault(e);
+            if (eventStat === true || markingMode === true) return;
             let distance = 0;
             multiPos.forEach((item, index) => {
-                if(index >= multiPos.length - 1) return;
+                if (index >= multiPos.length - 1) return;
                 distance += map.distance([item.lat, item.lng], [multiPos[index + 1].lat, multiPos[index + 1].lng]);
             });
             getMousePos(null, null);
             getDistance(distance);
             setEventStat(true);
         },
-        locationfound: (e) => {
-            const now = new Date(e.timestamp);
-            getMyPosition(e.latlng);
-            console.log(e);
-            console.log(now);
-        }
+        // locationfound: (e) => {
+        //     const now = new Date(e.timestamp);
+        //     getMyPosition(e.latlng);
+        //     console.log(e);
+        //     console.log(now);
+        // }
     });
     return null;
 }
 
-function MapComponenet({ 
-    pos, 
-    loaded, 
+function MapComponenet({
+    mapState,
     polyState,
     drawMultiLine,
     clearMultiLine,
     getMousePos,
     getSearchPos,
     getDistance,
-    getMyPosition
+    getMyPosition,
+    addMarkingPlace,
+    setMarkerPos,
+    setDrawerOpen
 }) {
     const { multiPos, mousePos, distance, searchPos } = polyState;
+    const { pos, loaded, markingMode, placeDrawerOpen, markerPlaces } = mapState;
 
     return (
-        <MapContainer zoom={18} scrollWheelZoom={true} style={{ height: '100vh', width: '100wh', zIndex: 1 }}>
-            <SearchField myPos={pos} getSearchPos={getSearchPos} />
-            <SetCenter 
-                center={[pos.lat, pos.lng]} 
-                loaded={loaded} 
-                getSearchPos={getSearchPos} 
-            />
-            <SetPolyLine 
-                multiPos={multiPos}
-                mousePos={mousePos}
-                drawMultiLine={drawMultiLine}
-                clearMultiLine={clearMultiLine}
-                getDistance={getDistance}
-                getMousePos={getMousePos}
-                getMyPosition={getMyPosition}
-            />
-            <SearchPolyLine myPos={pos} searchPos={searchPos} />
-            <DriftMarker multiPos={multiPos} /> 
-            <SearchDriftMarker myPos={pos} searchPos={searchPos} />
-            <MultiPolyLine multiPos={multiPos} mousePos={mousePos} />
-            <DistancePopup multiPos={multiPos} mousePos={mousePos} distance={distance} />
-            <TileLayer
-                attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {
-                loaded === true && (
-                    <Marker position={[pos.lat, pos.lng]}>
-                        <Popup>
-                            내 위치
-                        </Popup>
-                    </Marker>
-                )
-            }
-        </MapContainer>
+        <>
+            <MapContainer zoom={18} scrollWheelZoom={true} style={{ height: '100vh', width: '100wh', zIndex: 1 }}>
+                <SearchField myPos={pos} getSearchPos={getSearchPos} />
+                <SetCenter
+                    center={[pos.lat, pos.lng]}
+                    loaded={loaded}
+                    getSearchPos={getSearchPos}
+                />
+                <SetPolyLine
+                    multiPos={multiPos}
+                    mousePos={mousePos}
+                    markingMode={markingMode}
+                    drawMultiLine={drawMultiLine}
+                    clearMultiLine={clearMultiLine}
+                    getDistance={getDistance}
+                    getMousePos={getMousePos}
+                    getMyPosition={getMyPosition}
+                />
+                <SearchPolyLine myPos={pos} searchPos={searchPos} />
+                <DriftMarker multiPos={multiPos} />
+                <SearchDriftMarker myPos={pos} searchPos={searchPos} />
+                <MultiPolyLine multiPos={multiPos} mousePos={mousePos} />
+                <DistancePopup multiPos={multiPos} mousePos={mousePos} distance={distance} />
+                <AddMarker markingMode={markingMode} open={placeDrawerOpen} setMarkerPos={setMarkerPos} setDrawerOpen={setDrawerOpen} />
+                <PlaceMarker markerPlaces={markerPlaces} />
+                <TileLayer
+                    attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                {
+                    loaded === true && (
+                        <Marker position={[pos.lat, pos.lng]}>
+                            <Popup>
+                                내 위치
+                            </Popup>
+                        </Marker>
+                    )
+                }
+            </MapContainer>
+            <PlaceDrawer open={placeDrawerOpen} addMarkingPlace={addMarkingPlace} setDrawerOpen={setDrawerOpen} />
+        </>
     );
 }
 

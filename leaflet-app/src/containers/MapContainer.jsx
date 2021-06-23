@@ -60,10 +60,29 @@ function MapContainer() {
         })
     }
 
+    function addMarkingPlace(placeInfo) {
+        mapDispatch({
+            type: 'ADD_MARKER',
+            placeInfo: placeInfo
+        })
+    }
+
+    function setMarkerPos(markerPos) {
+        mapDispatch({
+            type: 'SET_MARKER_POS',
+            markerPos: markerPos
+        })
+    }
+
+    function setDrawerOpen() {
+        mapDispatch({
+            type: 'DRAWER_OPEN'
+        })
+    }
+
     return (
         <MapComponent 
-            pos={mapState.pos}
-            loaded={mapState.loaded}
+            mapState={mapState}
             polyState={polyState}
             drawMultiLine={drawMultiLine}
             clearMultiLine={clearMultiLine}
@@ -71,6 +90,9 @@ function MapContainer() {
             getSearchPos={getSearchPos}
             getDistance={getDistance}
             getMyPosition={getMyPosition}
+            addMarkingPlace={addMarkingPlace}
+            setMarkerPos={setMarkerPos}
+            setDrawerOpen={setDrawerOpen}
         />
     );
 }

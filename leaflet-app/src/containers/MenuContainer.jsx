@@ -1,5 +1,6 @@
 import React from 'react';
 import MenuItem from '../components/MenuItem';
+import ToggleMarkerButton from '../components/ToggleMarkerButton';
 import { MapDispatch } from '../contexts/MapContext';
 
 function MenuContainer() {
@@ -16,10 +17,16 @@ function MenuContainer() {
         });
     }
 
+    function changeMode () {
+        mapDispatch({
+            type: 'CHANGE_MODE'
+        });
+    }
     
     return (
-        <div style={{ position: 'absolute', top: '90%', left: '45%', zIndex: 2 }}>
+        <div style={{ position: 'absolute', top: '90%', left: '40%', zIndex: 2 }}>
             <MenuItem setPosition={setPosition} />
+            <ToggleMarkerButton changeMode={changeMode} />
         </div>
     );
 }

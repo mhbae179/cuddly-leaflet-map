@@ -13,7 +13,7 @@ function MenuItem({ setPosition }) {
     }
     
     return (
-        <Button color='primary' variant='outlined' onClick={setPos}>
+        <Button style={{ marginRight: '4px' }} color='primary' variant='outlined' onClick={setPos}>
             Get My Position
         </Button>
     );
